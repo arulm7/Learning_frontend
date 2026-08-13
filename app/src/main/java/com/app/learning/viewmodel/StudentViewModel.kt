@@ -2,83 +2,129 @@ package com.app.learning.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.app.learning.model.Student
 import com.app.learning.model.StudentRequest
-import com.app.learning.api.RetrofitClient
+import com.app.learning.model.StudentUiState
+import com.app.learning.repository.StudentRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class StudentViewModel : ViewModel() {
 
-    private val _students = MutableStateFlow<List<Student>>(emptyList())
-    val students: StateFlow<List<Student>> = _students
+    private val repository = StudentRepository()
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
+    private val _uiState =
+        MutableStateFlow(StudentUiState())
+
+    val uiState: StateFlow<StudentUiState> = _uiState
 
     fun loadStudents() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                val response = RetrofitClient.api.getStudents()
-                if (response.isSuccessful) {
-                    _students.value = response.body() ?: emptyList()
-                }
-            } catch (e: Exception) {
-                // Handle error
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
 
-    fun updateStudent(id:Int,name :String,course :String){
         viewModelScope.launch {
-            val student = StudentRequest(
-                name = name,
-                course = course
+
+            _uiState.value = _uiState.value.copy(
+                isLoading = true,
+                error = null
             )
+
             try {
-                val response = RetrofitClient.api.updateStudent(id, student)
-                if (response.isSuccessful) {
-                    loadStudents()
-                }
+                kotlinx.coroutines.delay(3000)
+//
+
+                val students = repository.getStudents()
+
+                _uiState.value = _uiState.value.copy(
+                    students = students,
+                    isLoading = false
+                )
+
             } catch (e: Exception) {
-                // Handle error
+
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message
+                )
             }
         }
     }
 
-    fun deleteStudent(id:Int){
+
+    fun createStudent(
+        name: String,
+        course: String
+    ) {
+
         viewModelScope.launch {
-            val response = RetrofitClient.api.deleteStudent(id)
-            if(response.isSuccessful){
-                println("Deleted")
+
+            try {
+
+                val student = StudentRequest(
+                    name = name,
+                    course = course
+                )
+
+                repository.createStudent(student)
+
                 loadStudents()
-            }
-            else{
-                println("${response.body()}")
+
+            } catch (e: Exception) {
+
+                _uiState.value = _uiState.value.copy(
+                    error = e.message
+                )
             }
         }
     }
 
-    fun createStudent(name:String,course:String){
+
+    fun updateStudent(
+        id: Int,
+        name: String,
+        course: String
+    ) {
+
         viewModelScope.launch {
-            val studentRequest = StudentRequest(
-                name = name,
-                course=course
-            )
-            val response = RetrofitClient.api.createStudent(studentRequest)
 
-            if (response.isSuccessful){
-                println("Student${response.body()}")
+            try {
+
+                val student = StudentRequest(
+                    name = name,
+                    course = course
+                )
+
+                repository.updateStudent(
+                    id,
+                    student
+                )
+
                 loadStudents()
-            }
-            else{
-                println("${response.code()}")
+
+            } catch (e: Exception) {
+
+                _uiState.value = _uiState.value.copy(
+                    error = e.message
+                )
             }
         }
     }
 
+
+    fun deleteStudent(id: Int) {
+
+        viewModelScope.launch {
+
+            try {
+
+                repository.deleteStudent(id)
+
+                loadStudents()
+
+            } catch (e: Exception) {
+
+                _uiState.value = _uiState.value.copy(
+                    error = e.message
+                )
+            }
+        }
+    }
 }
