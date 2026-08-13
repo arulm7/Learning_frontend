@@ -1,6 +1,9 @@
 package com.app.learning
 
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.collectAsState
 import android.os.Bundle
+import com.app.learning.model.Student
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -18,20 +21,23 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.app.learning.ui.theme.LearningTheme
+import com.app.learning.viewmodel.StudentViewModel
 
-class MainActivity : ComponentActivity(){
+class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         enableEdgeToEdge()
+
         setContent {
             LearningTheme {
                 StudentScreen()
@@ -40,15 +46,14 @@ class MainActivity : ComponentActivity(){
     }
 }
 
-data class Student(
-    val id: Int,
-    val name: String,
-    val course: String
-)
-
 @Composable
-fun StudentScreen(){
-    var name by remember{
+fun StudentScreen(
+    viewModel: StudentViewModel = viewModel()
+) {
+
+    val students by viewModel.students.collectAsState()
+
+    var name by remember {
         mutableStateOf("")
     }
 
@@ -56,69 +61,70 @@ fun StudentScreen(){
         mutableStateOf("")
     }
 
-
-    var students by remember {
-        mutableStateOf(listOf<Student>())
+    var editId by remember {
+        mutableStateOf<Int?>(null)
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.loadStudents()
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp),
-        verticalArrangement = Arrangement.Center
+            .padding(20.dp)
     ) {
-        Text(
-            text = "Student Management"
-        )
+
+        Text("Student Management")
+
         Spacer(
-            modifier = Modifier
-                .height(20.dp)
+            modifier = Modifier.height(20.dp)
         )
+
         OutlinedTextField(
             value = name,
             onValueChange = {
                 name = it
             },
             label = {
-                Text("Student Name : ")
+                Text("Student Name")
             },
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(
-            modifier = Modifier
-                .height(20.dp)
 
+        Spacer(
+            modifier = Modifier.height(20.dp)
         )
+
         OutlinedTextField(
             value = course,
             onValueChange = {
                 course = it
             },
             label = {
-                Text("Course : ")
+                Text("Course")
             },
             modifier = Modifier.fillMaxWidth()
         )
+
         Spacer(
-            modifier = Modifier
-                .height(20.dp)
+            modifier = Modifier.height(20.dp)
         )
         Button(
             onClick = {
-                val student = Student(
-                    id = students.size + 1,
+
+                viewModel.createStudent(
                     name = name,
                     course = course
                 )
-                students = students + student
 
                 name = ""
                 course = ""
+
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Save Student")
+            Text("Add Student")
         }
 
         LazyColumn(
@@ -126,24 +132,72 @@ fun StudentScreen(){
                 .fillMaxWidth()
                 .weight(1f)
         ) {
+
             items(students) { student ->
-                StudentCard(student = student)
+
+                StudentCard(
+                    student = student,
+                    onEdit = {
+                        name = student.name
+                        course = student.course
+                        editId = student.id
+                    },
+                    onDelete = {
+                        // We'll connect this to ViewModel later
+                    }
+                )
             }
         }
     }
 }
 
 @Composable
-fun StudentCard(student: Student) {
+fun StudentCard(
+    student: Student,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "ID: ${student.id}")
-            Text(text = "Name: ${student.name}")
-            Text(text = "Course: ${student.course}")
+
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+
+            Text(
+                text = "ID: ${student.id}"
+            )
+
+            Text(
+                text = "Name: ${student.name}"
+            )
+
+            Text(
+                text = "Course: ${student.course}"
+            )
+
+            Spacer(
+                modifier = Modifier.height(10.dp)
+            )
+
+
+            Button(
+                onClick = onEdit,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Edit")
+            }
+
+            Button(
+                onClick = onDelete,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Delete")
+            }
         }
     }
 }
