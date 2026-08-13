@@ -33,6 +33,36 @@ class StudentViewModel : ViewModel() {
         }
     }
 
+    fun updateStudent(id:Int,name :String,course :String){
+        viewModelScope.launch {
+            val student = StudentRequest(
+                name = name,
+                course = course
+            )
+            try {
+                val response = RetrofitClient.api.updateStudent(id, student)
+                if (response.isSuccessful) {
+                    loadStudents()
+                }
+            } catch (e: Exception) {
+                // Handle error
+            }
+        }
+    }
+
+    fun deleteStudent(id:Int){
+        viewModelScope.launch {
+            val response = RetrofitClient.api.deleteStudent(id)
+            if(response.isSuccessful){
+                println("Deleted")
+                loadStudents()
+            }
+            else{
+                println("${response.body()}")
+            }
+        }
+    }
+
     fun createStudent(name:String,course:String){
         viewModelScope.launch {
             val studentRequest = StudentRequest(

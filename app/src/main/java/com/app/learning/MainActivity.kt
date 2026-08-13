@@ -113,10 +113,23 @@ fun StudentScreen(
         Button(
             onClick = {
 
-                viewModel.createStudent(
-                    name = name,
-                    course = course
-                )
+                if (editId != null) {
+
+                    viewModel.updateStudent(
+                        id = editId!!,
+                        name = name,
+                        course = course
+                    )
+
+                    editId = null
+
+                } else {
+
+                    viewModel.createStudent(
+                        name = name,
+                        course = course
+                    )
+                }
 
                 name = ""
                 course = ""
@@ -124,7 +137,12 @@ fun StudentScreen(
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Add Student")
+            Text(
+                if (editId != null)
+                    "Update Student"
+                else
+                    "Add Student"
+            )
         }
 
         LazyColumn(
@@ -143,7 +161,7 @@ fun StudentScreen(
                         editId = student.id
                     },
                     onDelete = {
-                        // We'll connect this to ViewModel later
+                        viewModel.deleteStudent(student.id)
                     }
                 )
             }
